@@ -2,6 +2,7 @@
 
 import copy
 import hashlib
+import ipaddress
 import json
 import math
 import os
@@ -40,7 +41,7 @@ def validate(profile):
                     "prefix_cache_retention_interval",
                     "mm_processor_cache_gb",
                 },
-                "server.api": {"prompt_tokens_details", "dev_endpoints"},
+                "server.api": {"prompt_tokens_details", "dev_endpoints", "host"},
                 "server.resources": {"stall_seconds"},
                 "server.generation": {"warmup", "warmup_long_tokens"},
             }.get(path, set())
@@ -96,6 +97,14 @@ def validate(profile):
             )
     if type(profile["api"].get("dev_endpoints", False)) is not bool:
         raise ValueError("api.dev_endpoints must be true or false")
+    if "host" in profile["api"]:
+        # 0.0.0.0 is allowed here and nowhere else in this file: the fabric
+        # addresses must be concrete, while an operator publishing the API on a
+        # trusted link has no other way to say "every interface".
+        bind = profile["api"]["host"]
+        if not isinstance(bind, str):
+            raise ValueError("api.host must be an IPv4 address")
+        ipaddress.IPv4Address(bind)
     if type(profile["generation"].get("warmup", False)) is not bool:
         raise ValueError("generation.warmup must be true or false")
     for section, key in (
@@ -287,6 +296,7 @@ def site(profile, rank):
         **profile["nodes"][rank],
         "rank": rank,
         "head_ip": profile["nodes"][0]["local_ip"],
+        "api_host": profile["api"].get("host", "127.0.0.1"),
         "api_port": profile["api"]["port"],
         "master_port": profile["api"]["master_port"],
     }

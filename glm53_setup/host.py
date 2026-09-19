@@ -29,6 +29,7 @@ def validate_site(site):
     for key in ("api_port", "master_port"):
         if type(site.get(key)) is not int or not 1024 <= site[key] <= 65535:
             raise ValueError(f"Invalid {key}")
+    ipaddress.IPv4Address(site.get("api_host", "127.0.0.1"))
     if site["api_port"] == site["master_port"]:
         raise ValueError("API and rendezvous ports must differ")
     fabric.rails(site)
@@ -54,7 +55,7 @@ def serve_args(site, model_path):
         "--master-port",
         str(site["master_port"]),
         "--host",
-        "127.0.0.1",
+        site.get("api_host", "127.0.0.1"),
         "--port",
         str(site["api_port"]),
         "--language-model-only",
