@@ -46,7 +46,7 @@ def validate(profile):
                 "server.generation": {"warmup", "warmup_long_tokens"},
             }.get(path, set())
             if path.startswith("server.nodes["):
-                optional = {"additional_rails"}
+                optional = {"additional_rails", "reference_image", "lpa_image"}
             if (
                 not isinstance(value, dict)
                 or value.keys() - optional != expected.keys() - optional
@@ -117,8 +117,14 @@ def validate(profile):
     if profile["schema_version"] != 1:
         raise ValueError("Unsupported profile schema_version")
     for key in ("reference_image", "lpa_image"):
-        if not re.fullmatch(r"sha256:[0-9a-f]{64}", profile["runtime"][key]):
-            raise ValueError(f"runtime.{key} must be an immutable image ID")
+        values = [profile["runtime"][key]] + [
+            node[key] for node in profile["nodes"] if key in node
+        ]
+        for value in values:
+            if not isinstance(value, str) or not re.fullmatch(
+                r"sha256:[0-9a-f]{64}", value
+            ):
+                raise ValueError(f"{key} must be an immutable image ID")
     for section, keys in {
         "context": ("max_model_len", "max_num_seqs", "max_num_batched_tokens"),
         "cache": ("kv_cache_memory_bytes", "block_size"),
@@ -307,10 +313,19 @@ def fingerprint(profile):
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
-def selected_image(profile):
-    return profile["runtime"][
-        "lpa_image" if profile["lpa"]["enabled"] else "reference_image"
-    ]
+def selected_image(profile, rank=None):
+    """The image ID this host must present.
+
+    One image can carry two IDs across a pair: a daemon on the classic image
+    store and one on the containerd snapshotter serialize the same config
+    differently, so a `docker save` copy loads under a different digest even
+    though the layers are identical. A node may therefore name its own ID; the
+    profile-level value stays the default and the pin stays a pin.
+    """
+    key = "lpa_image" if profile["lpa"]["enabled"] else "reference_image"
+    if rank is not None and key in profile["nodes"][rank]:
+        return profile["nodes"][rank][key]
+    return profile["runtime"][key]
 
 
 def environment(profile, rank):

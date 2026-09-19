@@ -99,7 +99,7 @@ def command(profile, config_path, rank, name, cache=None):
     return args + [
         "--entrypoint",
         "vllm",
-        settings.selected_image(profile),
+        settings.selected_image(profile, rank),
         *settings.serve_args(
             profile,
             rank,
@@ -159,13 +159,13 @@ def image_capability_checks(profile, image):
     return {key: marker in env for key, marker, enabled in required if enabled}
 
 
-def derived_checks(profile, metadata):
+def derived_checks(profile, metadata, rank=None):
     """Fail closed unless the checkpoint and each overlay are the declared ones."""
     derived = profile["runtime"].get("derived_checkpoint")
     if not derived:
         return {}
     quantization = metadata.get("quantization_config") or {}
-    image = settings.selected_image(profile)
+    image = settings.selected_image(profile, rank)
 
     def overlay_matches(overlay):
         source = Path(overlay["source"])
@@ -221,7 +221,7 @@ def preflight(profile, config_path, rank, *, check_memory=True):
     checks["full_model"] = metadata["text_config"][
         "num_hidden_layers"
     ] == MODEL_LAYERS and not metadata.get("_test_fixture_only")
-    checks.update(derived_checks(profile, metadata))
+    checks.update(derived_checks(profile, metadata, rank))
     if profile["mtp"]["enabled"] and "derived_checkpoint" not in profile["runtime"]:
         view = metadata.get("_local_mtp_metadata", {})
         checks["mtp_view"] = (
@@ -235,9 +235,9 @@ def preflight(profile, config_path, rank, *, check_memory=True):
                 == profile["lpa"]["projector_sha256"]
             )
     image = json.loads(
-        host.run("docker", "image", "inspect", settings.selected_image(profile))
+        host.run("docker", "image", "inspect", settings.selected_image(profile, rank))
     )[0]
-    checks["image_id"] = image["Id"] == settings.selected_image(profile)
+    checks["image_id"] = image["Id"] == settings.selected_image(profile, rank)
     checks.update(image_capability_checks(profile, image))
     # Any pair of this launcher carries LABEL, including the old pair that is
     # still running while cluster switch prepares the new profile.

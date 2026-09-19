@@ -149,6 +149,11 @@ stall_seconds = 600 # Rank 0 only: stop when requests are running but no /metric
 # KV 使用率の変化は進行とみなすので長い prefill は停滞にならない。engine が固まっても /health は 200 のまま。
 
 [[nodes]]
+# Optional per-node image ID, for a pair whose daemons disagree about the ID of the same image
+# (classic image store vs containerd snapshotter); omitted = runtime.reference_image / lpa_image.
+# 同じimageのIDが両ノードで違う場合（classic image store と containerd snapshotter）の上書き。未指定は runtime 側の値。
+# reference_image = "sha256:<verified on this node>"
+# lpa_image = "sha256:<verified on this node>"
 # Optional extra RoCE rails. All must use the primary rail's GID index.
 # additional_rails = [{ hca = "roce1", port = 1, interface = "fabric1", local_ip = "10.54.0.1", gid_index = 3 }]
 local_ip = "10.53.0.1" # Rank 0 / head (illustrative values)

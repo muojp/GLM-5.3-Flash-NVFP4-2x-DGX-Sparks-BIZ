@@ -59,7 +59,7 @@ def inspect(profile, config_path, rank):
     }
     source["examples/server.example.toml"] = sha(ROOT / "examples/server.example.toml")
     image = json.loads(
-        host.run("docker", "image", "inspect", settings.selected_image(profile))
+        host.run("docker", "image", "inspect", settings.selected_image(profile, rank))
     )[0]
     image_allocator = next(
         (
