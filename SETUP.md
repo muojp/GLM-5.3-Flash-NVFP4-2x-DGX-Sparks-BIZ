@@ -60,7 +60,7 @@ python -m unittest discover -s tests -t . -v
 python tools/check_publication.py
 ```
 
-Do not copy `state/`, credentials or local records into Git. Each host owns its own state. Use the default `$HOME/.cache/huggingface` for this release: the launcher assumes that location. Custom cache environment variables are not integrated into its mount resolution yet. Store state and reports under this checkout's `state/` and `records/`.
+Do not copy `state/`, credentials or local records into Git. Each host owns its own state. The launcher reads `HF_HOME` and mounts that directory, falling back to `$HOME/.cache/huggingface`. Set it the same way for the downloader, preflight and start on both hosts: they must agree on one root, and a host whose default cache belongs to another user needs one it can write. `HF_HUB_CACHE` is not read, because it names `hub/` and leaves the MTP view root unstated. Store state and reports under this checkout's `state/` and `records/`.
 
 When deploying a source archive to a new checkout, connect its Git-excluded runtime directories to the host's persistent state before running `server preflight` or `cluster switch`. The source archive intentionally omits these directories. Keep the old checkout and its records intact until the new pair is ready:
 

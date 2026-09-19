@@ -13,7 +13,7 @@ from pathlib import Path
 
 from . import agreement, capacity, host, model_http, mojibake, warmup
 from . import server_config as settings
-from .config import MODEL_LAYERS, ROOT, load_lock
+from .config import MODEL_LAYERS, ROOT, cache_root, load_lock
 from .host import available_gib
 from .io import read_json, write_json
 
@@ -46,7 +46,7 @@ def model_path(profile, cache):
 
 def command(profile, config_path, rank, name, cache=None):
     settings.validate(profile)
-    cache = cache or Path.home() / ".cache/huggingface"
+    cache = cache or cache_root()
     model = model_path(profile, cache)
     limit = f"{profile['resources']['container_memory_gib']}g"
     args = [
@@ -201,7 +201,7 @@ def derived_checks(profile, metadata):
 
 
 def preflight(profile, config_path, rank, *, check_memory=True):
-    cache = Path.home() / ".cache/huggingface"
+    cache = cache_root()
     lock = load_lock()
     source = host.snapshot_from_state(
         read_json(ROOT / "state/download-status.json"), lock

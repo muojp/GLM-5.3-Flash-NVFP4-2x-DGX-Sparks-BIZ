@@ -60,7 +60,7 @@ python -m unittest discover -s tests -t . -v
 python tools/check_publication.py
 ```
 
-`state/`、認証情報、ローカル記録はGitに含めません。状態は各ノード固有です。本リリースでは既定の`$HOME/.cache/huggingface`を使用してください。起動コードのマウント解決はまだカスタムキャッシュ環境変数に対応していません。状態とレポートはチェックアウト内の`state/`、`records/`へ保存します。
+`state/`、認証情報、ローカル記録はGitに含めません。状態は各ノード固有です。起動コードは `HF_HOME` を読み、そのディレクトリをmountします。未設定なら `$HOME/.cache/huggingface` です。ダウンローダー・preflight・startで同じ値を両ホストに与えてください。rootは1つに揃える必要があり、既定のcacheが他ユーザー所有のホストには書ける場所が要ります。`HF_HUB_CACHE` は読みません。`hub/` しか指さず、MTP viewのrootが決まらないためです。状態とレポートはチェックアウト内の`state/`、`records/`へ保存します。
 
 ソースアーカイブを新しいcheckoutへ展開したときは、`server preflight`や`cluster switch`の前に、Git除外の実行時ディレクトリを各ホストの永続領域へ接続します。ソースアーカイブには意図的に含まれません。新しい対がreadyになるまで旧checkoutと記録を保持します。
 

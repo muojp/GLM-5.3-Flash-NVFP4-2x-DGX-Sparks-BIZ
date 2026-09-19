@@ -49,12 +49,12 @@ state/lpa/glm53-lpa-cut32-v1/
 
 実験用の起動ランチャーは、ホスト既定のHugging Face cacheを読み、containerの `/hf` へ読み取り専用でmountします。選択したsnapshotまたはMTP viewは、そのmount内で解決します。モデルcache全体の `blobs`／`snapshots` の関係を保ってください。snapshotディレクトリだけを複製しても足りません。両ホストのディスクに完全なcheckpointが必要です。TP=2が分割するのはロード済みのtensorであり、ダウンロードしたファイルではありません。
 
-ダウンローダーはHugging Faceのcache環境設定に従いますが、現行のランチャーは既定のcache rootを前提とします。本リリースでは、これらの資材を取得する際に `HF_HOME`／`HF_HUB_CACHE` を設定せず、文書化した既定の場所を使ってください。任意のcacheへのダウンロードが成功しても、ランチャーがそれを見つけてmountできることの証明にはなりません。
+ダウンローダーはHugging Faceのcache環境設定に従い、ランチャーも `HF_HOME` に従います。ダウンロード・preflight・MTP view・`/hf` のmountはすべて同じrootで解決します。未設定なら `$HOME/.cache/huggingface` です。両ホストの全phaseへ同じ値を与えてください。preflightは記録されたsnapshotを自分が解決したrootと突き合わせるため、`HF_HOME` 付きで取得して未設定で起動すると不一致で止まります。`HF_HUB_CACHE` は意図的に読みません。`hub/` しか指さず、MTP viewはその隣にあるためです。
 
 ダウンロードを始めずに、想定される場所と記録された場所を確認します。各Linuxホストのcheckoutで実行してください。
 
 ```sh
-python -c 'from pathlib import Path; from glm53_setup.config import MODEL, REVISION; print(Path.home() / ".cache/huggingface/hub" / ("models--" + MODEL.replace("/", "--")) / "snapshots" / REVISION)'
+python -c 'from glm53_setup.config import MODEL, REVISION, cache_root; print(cache_root() / "hub" / ("models--" + MODEL.replace("/", "--")) / "snapshots" / REVISION)'
 python -c 'import json; from glm53_setup.config import STATE; s = json.loads((STATE / "download-status.json").read_text()); print(s.get("status"), s.get("snapshot", "not recorded"))'
 ```
 

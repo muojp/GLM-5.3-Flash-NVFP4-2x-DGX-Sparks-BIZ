@@ -49,12 +49,12 @@ state/lpa/glm53-lpa-cut32-v1/
 
 The server launcher reads the default host Hugging Face cache and mounts it read-only at `/hf` in the container. It resolves the selected snapshot or MTP view within that mount. Preserve the entire model cache's `blobs`/`snapshots` relationship; copying a snapshot directory alone is insufficient. Both hosts need the complete checkpoint on disk; TP=2 partitions loaded tensors, not the downloaded files.
 
-The downloader follows Hugging Face cache environment settings, but the current launcher assumes the default cache root. For this release, leave `HF_HOME`/`HF_HUB_CACHE` unset when acquiring these assets and use the documented default. A successful custom-cache download does not establish that the launcher can find or mount it.
+The downloader follows Hugging Face cache environment settings, and the launcher follows `HF_HOME` with it: download, preflight, the MTP view and the `/hf` mount all resolve against that one root, `$HOME/.cache/huggingface` when it is unset. Give every phase the same value on both hosts — preflight compares the recorded snapshot against the root it resolves, so a download made under `HF_HOME` and a start made without it fail on a mismatch. `HF_HUB_CACHE` is deliberately not read: it names `hub/` only, and the MTP view lives beside it.
 
 Inspect the expected and recorded locations without starting a download, from the checkout on each Linux host:
 
 ```sh
-python -c 'from pathlib import Path; from glm53_setup.config import MODEL, REVISION; print(Path.home() / ".cache/huggingface/hub" / ("models--" + MODEL.replace("/", "--")) / "snapshots" / REVISION)'
+python -c 'from glm53_setup.config import MODEL, REVISION, cache_root; print(cache_root() / "hub" / ("models--" + MODEL.replace("/", "--")) / "snapshots" / REVISION)'
 python -c 'import json; from glm53_setup.config import STATE; s = json.loads((STATE / "download-status.json").read_text()); print(s.get("status"), s.get("snapshot", "not recorded"))'
 ```
 

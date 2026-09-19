@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import mock_open, patch
 
+from glm53_setup import config as checkout
 from glm53_setup import server
 from glm53_setup import server_config as config
 
@@ -444,7 +445,7 @@ class ServerConfigTests(unittest.TestCase):
         )
 
     def test_preflight_refuses_foreign_gpu_containers_with_or_without_memory(self):
-        cache = Path.home() / ".cache/huggingface"
+        cache = checkout.cache_root()
         profile = self.profile
         model = server.model_path(profile, cache)
         image_id = config.selected_image(profile)
@@ -785,7 +786,7 @@ class ServerConfigTests(unittest.TestCase):
         self.assertEqual(server.derived_checks(self.profile, metadata), {})
 
     def test_preflight_runs_the_derived_checks_beside_the_pinned_snapshot(self):
-        cache = Path.home() / ".cache/huggingface"
+        cache = checkout.cache_root()
         self.profile["mtp"]["enabled"] = True
         snapshot = server.model_path(
             {**self.profile, "mtp": {**self.profile["mtp"], "enabled": False}}, cache
